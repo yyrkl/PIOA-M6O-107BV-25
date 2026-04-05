@@ -5,6 +5,7 @@ from src.db.backend.memory import (
     delete_record, 
     Student
 )
+
 def _print_menu() -> None:
     # Символ \n обозначает перевод строки.
     print("\n=== База студентов ===")
@@ -108,14 +109,13 @@ def _find_students_by_filter() -> None:
 
 def _update_students_by_filter() -> None:
     print("Поиск записи для обновления")
-    id_str = input("ID студента (Enter = пропустить): ").strip()
-    student_id = int(id_str) if id_str else None
+    
+    student_id = _read_optional_int("ID студента(Enter - пропустить)")
     first_name = input("Имя (Enter - пропустить): ").strip()
     first_name = first_name if first_name else None
     second_name = input("Фамилия (Enter - пропустить): ").strip()
     second_name = second_name if second_name else None
-    age_str = input("Возраст (Enter - пропустить): ").strip()
-    age = int(age_str) if age_str else None
+    age = _read_optional_int("Возраст (Enter - пропустить): ")
     sex = input("Пол (М/Ж, Enter - пропустить): ").strip().upper()
     sex = sex if sex else None
     if (student_id is None and first_name is None and 
@@ -145,8 +145,7 @@ def _update_students_by_filter() -> None:
     new_second_name = input("Новая фамилия (Enter - не менять): ").strip()
     new_second_name = new_second_name if new_second_name else None
     
-    new_age_str = input("Новый возраст (Enter - не менять): ").strip()
-    new_age = int(new_age_str) if new_age_str else None
+    new_age = _read_optional_int("Новый возраст (Enter - не менять): ")
     
     new_sex = input("Новый пол (М/Ж, Enter - не менять): ").strip().upper()
     new_sex = new_sex if new_sex else None
@@ -180,8 +179,7 @@ def _update_students_by_filter() -> None:
         print(f"\n Ошибка: {e}")
 
 def _delete_students_by_filter() -> None:
-    id_str = input("\n ID студента (Enter - пропустить): ").strip()
-    student_id = int(id_str) if id_str else None
+    student_id = _read_optional_int("\n ID студента(Enter - пропустить)")
     
     first_name = input("Имя (Enter - пропустить): ").strip()
     first_name = first_name if first_name else None
@@ -189,8 +187,7 @@ def _delete_students_by_filter() -> None:
     second_name = input("Фамилия (Enter - пропустить): ").strip()
     second_name = second_name if second_name else None
     
-    age_str = input("Возраст (Enter - пропустить): ").strip()
-    age = int(age_str) if age_str else None
+    age = _read_optional_int("Возраст (Enter - пропустить): ")
     
     sex = input("Пол (М/Ж, Enter - пропустить): ").strip().upper()
     sex = sex if sex else None
