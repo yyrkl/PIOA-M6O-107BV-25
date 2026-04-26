@@ -1,6 +1,7 @@
 type StudentRecord = tuple[int, str, str, int, str]
 
 Student: list[StudentRecord] = []
+
 def create_record(
     student_id: int,   # Уникальный идентификатор записи
     first_name: str,   # Имя
@@ -29,6 +30,7 @@ def create_record(
 
     # Возврат созданной записи.
     return new_record
+
 def select_record(
     student_id: int | None = None,   # Фильтр по идентификатору
     first_name: str | None = None,   # Фильтр по имени
@@ -130,23 +132,23 @@ def update_record(
         if sex is not None and record[4] != sex:
             continue
 
-    updated_record = list(record)
+        updated_record = list(record)
 
-    if new_first_name is not None:
-        updated_record[1] = new_first_name.strip()
+        if new_first_name is not None:
+            updated_record[1] = new_first_name.strip()
 
-    if new_second_name is not None:
-        updated_record[2] = new_second_name.strip()
+        if new_second_name is not None:
+            updated_record[2] = new_second_name.strip()
 
-    if new_age is not None:
-        updated_record[3] = new_age
+        if new_age is not None:
+            updated_record[3] = new_age
 
-    if new_sex is not None:
-        updated_record[4] = new_sex.strip()
+        if new_sex is not None:
+            updated_record[4] = new_sex.strip()
 
-    new_record = tuple(updated_record)
-    Student[i] = new_record
-    updated_records.append(new_record)
+        new_record = tuple(updated_record)
+        Student[i] = new_record
+        updated_records.append(new_record)
 
     return updated_records
 
@@ -192,3 +194,6 @@ def delete_record(
         deleted_records.append(deleted)
 
     return deleted_records
+
+class StudentTable:
+    pass

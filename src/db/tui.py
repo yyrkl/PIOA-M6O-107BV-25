@@ -1,4 +1,4 @@
-from src.db.backend.memory import (
+from db.backend.memory import (
     create_record, 
     select_record, 
     update_record, 
@@ -156,25 +156,24 @@ def _update_students_by_filter() -> None:
         return
     
     try:
-        updated = update_record(
-            student_id=student_id,
-            first_name=first_name,
-            second_name=second_name,
-            age=age,
-            sex=sex,
-            new_first_name=new_first_name,
-            new_second_name=new_second_name,
-            new_age=new_age,
-            new_sex=new_sex
-    )
+        updated = []
+        for record in matching:
+            result = update_record(
+                student_id = record[0],
+                new_first_name=new_first_name,
+                new_second_name=new_second_name,
+                new_age=new_age,
+                new_sex=new_sex
+            )
+            updated.extend(result)
+
         if updated:
             print("\nОбновленные записи:")
             for record in updated:
                 print(f"  {record}")
         else:
             print("\n Записи не найдены или не обновлены")
-    except ValueError as e:
-        print(f"\n Ошибка: {e}")
+    
     except Exception as e:
         print(f"\n Ошибка: {e}")
 
