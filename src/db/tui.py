@@ -1,10 +1,19 @@
-from .backend.memory import create_record, select_record
+from db.backend.memory import (
+    create_record, 
+    select_record, 
+    update_record, 
+    delete_record, 
+    Student
+)
+
 def _print_menu() -> None:
     # Символ \n обозначает перевод строки.
     print("\n=== База студентов ===")
     print("1. Добавить запись")
     print("2. Показать все записи")
     print("3. Найти записи по фильтру")
+    print("4. Обновить записи по фильтру")
+    print("5. Удалить записи по фильтру")
     print("0. Выход")
 
 # Функция чтения целочисленного значения из консоли.
@@ -97,6 +106,140 @@ def _find_students_by_filter() -> None:
   )
 
     _print_records(records)
+
+def _update_students_by_filter() -> None:
+    print("Поиск записи для обновления")
+    
+    student_id = _read_optional_int("ID студента(Enter - пропустить)")
+    first_name = input("Имя (Enter - пропустить): ").strip()
+    first_name = first_name if first_name else None
+    second_name = input("Фамилия (Enter - пропустить): ").strip()
+    second_name = second_name if second_name else None
+    age = _read_optional_int("Возраст (Enter - пропустить): ")
+    sex = input("Пол (М/Ж, Enter - пропустить): ").strip().upper()
+    sex = sex if sex else None
+    if (student_id is None and first_name is None and 
+        second_name is None and age is None and sex is None):
+        print("\n Ошибка: нужно указать хотя бы один критерий поиска!")
+        return
+    matching = select_record(student_id, first_name, second_name, age, sex)
+    print(f"\nНайдено записей для обновления: {len(matching)}")
+    
+    if not matching:
+        print("Нет записей, соответствующих критериям.")
+        return
+    print("\nЗаписи, которые будут обновлены:")
+    for record in matching:
+        print(f"  {record}")
+    
+    confirm = input("\nПродолжить обновление? (д/н): ").strip().lower()
+    if confirm != 'д':
+        print("Обновление отменено.")
+        return
+    print("\n--- НОВЫЕ ЗНАЧЕНИЯ ---")
+    print("(Оставьте поле пустым, если не хотите его менять)")
+    
+    new_first_name = input("Новое имя (Enter - не менять): ").strip()
+    new_first_name = new_first_name if new_first_name else None
+    
+    new_second_name = input("Новая фамилия (Enter - не менять): ").strip()
+    new_second_name = new_second_name if new_second_name else None
+    
+    new_age = _read_optional_int("Новый возраст (Enter - не менять): ")
+    
+    new_sex = input("Новый пол (М/Ж, Enter - не менять): ").strip().upper()
+    new_sex = new_sex if new_sex else None
+    
+    if (new_first_name is None and new_second_name is None and 
+        new_age is None and new_sex is None):
+        print("\n Ошибка: нужно указать хотя бы одно поле для обновления!")
+        return
+    
+    try:
+        updated = []
+        for record in matching:
+            result = update_record(
+                student_id = record[0],
+                new_first_name=new_first_name,
+                new_second_name=new_second_name,
+                new_age=new_age,
+                new_sex=new_sex
+            )
+            updated.extend(result)
+
+        if updated:
+            print("\nОбновленные записи:")
+            for record in updated:
+                print(f"  {record}")
+        else:
+            print("\n Записи не найдены или не обновлены")
+    
+    except Exception as e:
+        print(f"\n Ошибка: {e}")
+
+def _delete_students_by_filter() -> None:
+    student_id = _read_optional_int("\n ID студента(Enter - пропустить)")
+    
+    first_name = input("Имя (Enter - пропустить): ").strip()
+    first_name = first_name if first_name else None
+    
+    second_name = input("Фамилия (Enter - пропустить): ").strip()
+    second_name = second_name if second_name else None
+    
+    age = _read_optional_int("Возраст (Enter - пропустить): ")
+    
+    sex = input("Пол (М/Ж, Enter - пропустить): ").strip().upper()
+    sex = sex if sex else None
+    
+    if (student_id is None and first_name is None and 
+        second_name is None and age is None and sex is None):
+        print("\n Ошибка: укажите критерий для поиска")
+        return
+    
+    records_to_delete = select_record(
+        student_id=student_id,
+        first_name=first_name,
+        second_name=second_name,
+        age=age,
+        sex=sex
+    )
+    
+    print(f"\n Записи для удаления: {len(records_to_delete)}")
+    
+    if not records_to_delete:
+        print("Нет таких записей")
+        return
+    
+    print("\n Записи для удаления:")
+    for i, record in enumerate(records_to_delete, 1):
+        print(f"  {i}. ID: {record[0]}, {record[1]} {record[2]}, {record[3]} лет, {record[4]}")
+    
+    print("\n  Подтверждение")
+    confirm1 = input("Вы точно хотите удалить эти записи? (д/н): ").strip().lower()
+    
+    if confirm1 != 'д':
+        print("Удаление отменено.")
+        return
+    
+    try:
+        deleted = delete_record(
+            student_id=student_id,
+            first_name=first_name,
+            second_name=second_name,
+            age=age,
+            sex=sex
+        )
+        
+        if deleted:
+            print("\n Удаленные записи:")
+            for i, record in enumerate(deleted, 1):
+                print(f"  {i}. ID: {record[0]}, {record[1]} {record[2]}, {record[3]} лет, {record[4]}")
+        
+    except ValueError as e:
+        print(f"\n Ошибка: {e}")
+    except Exception as e:
+        print(f"\n Ошибка: {e}")
+
 def run() -> None:
     """
     Запускает основной цикл текстового пользовательского интерфейса.
@@ -122,6 +265,12 @@ def run() -> None:
 
         elif action == "3":
             _find_students_by_filter()
+        
+        elif action == "4":
+            _update_students_by_filter()
+        
+        elif action == "5":
+            _delete_students_by_filter()
 
         elif action == "0":
             # Завершение работы программы.
