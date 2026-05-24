@@ -1,9 +1,9 @@
-from db.backend.memory import (
+from .backend.memory import (
     create_record, 
     select_record, 
     update_record, 
     delete_record, 
-    Student
+    StudentTable,
 )
 
 def _print_menu() -> None:
@@ -33,24 +33,20 @@ def _read_int(prompt: str) -> int:
             print("Ошибка: введите целое число.")
 
 # Функция добавления новой записи в базу данных.
+from src.db.backend.errors import DuplicateIDError, InvalidAgeError
+
 def _add_student() -> None:
     print("\nДобавление записи")
-
     student_id = _read_int("id: ")
     first_name = input("first_name: ").strip()
     second_name = input("second_name: ").strip()
     age = _read_int("age: ")
     sex = input("sex: ").strip()
-
     try:
-        # Вызов функции слоя бизнес-логики.
         record = create_record(student_id, first_name, second_name, age, sex)
-
-        # В случае успешного добавления запись выводится в консоль.
         print(f"Запись добавлена: {record}")
 
-    except ValueError as exc:
-        # Обработка ошибок валидации.
+    except (DuplicateIDError, InvalidAgeError) as exc:
         print(f"Ошибка: {exc}")
 
 # Вспомогательная функция вывода списка записей.
