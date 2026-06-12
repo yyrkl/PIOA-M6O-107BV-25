@@ -74,14 +74,21 @@ class TestFileDatabase(unittest.TestCase):
 
     def test_corrupted_file_handling(self):
         """Тест обработки повреждённого файла"""
+    
+        self.db.insert_record("students", {"student_id": 1, "name": "John", "age": 20})
+    
+    # Повреждаем файл
         table_path = os.path.join(self.temp_dir.name, "students.json")
         with open(table_path, 'w', encoding='utf-8') as f:
             f.write("not valid json")
-
+    
+    # Создаём новый экземпляр БД
+        new_db = FileDatabase(self.temp_dir.name)
+    
+    # Ошибка должна возникнуть при обращении к таблице
         with self.assertRaises(InvalidStorageDataError):
-            FileDatabase(self.temp_dir.name)
+            new_db.select_records("students")
 
 
 if __name__ == "__main__":
     unittest.main()
-    
