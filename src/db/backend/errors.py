@@ -47,3 +47,13 @@ class MissingParameterError(DatabaseError):
 class NoUpdateFieldsError(DatabaseError):
    """Ошибка, возникающая когда не указаны поля для обновления."""
    pass
+
+def validate_age(age: int) -> None:
+    """Проверяет, что возраст не отрицательный."""
+    if age < 0:
+        raise InvalidAgeError("Поле age не может быть отрицательным.")
+
+def validate_unique_id(records: list, student_id: int) -> None:
+    """Проверяет, что ID уникален."""
+    if any(r.get("student_id") == student_id for r in records):
+        raise DuplicateIDError(f"Запись с id={student_id} уже существует.")

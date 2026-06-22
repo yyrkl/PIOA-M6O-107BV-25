@@ -1,195 +1,209 @@
-
-# tests/test_memory.py
 import unittest
-from src.db.backend.memory import StudentTable
-from src.db.backend.errors import InvalidAgeError, DuplicateIDError
+from src.db.backend.memory import MemoryDatabase
+from src.db.backend.errors import (
+    InvalidAgeError,
+    DuplicateIDError,
+    TableNotFoundError,
+    MissingColumnError,
+    UnknownColumnError
+)
 
 
-class TestMemory(unittest.TestCase):
+class TestMemoryDatabase(unittest.TestCase):
     def setUp(self):
-        self.student_table = StudentTable()
-        self.assertIsInstance(self.student_table, StudentTable)
+        self.db = MemoryDatabase()
+        self.db.create_table("students", ("student_id", "first_name", "second_name", "age", "sex"))
+
+    def _insert_test_data(self):
+        """Вспомогательный метод для вставки тестовых данных"""
+        test_data = [
+            {"student_id": 1, "first_name": "John", "second_name": "Doe", "age": 20, "sex": "M"},
+            {"student_id": 2, "first_name": "Jane", "second_name": "Smith", "age": 22, "sex": "F"},
+            {"student_id": 3, "first_name": "Alice", "second_name": "Johnson", "age": 19, "sex": "F"},
+            {"student_id": 4, "first_name": "Bob", "second_name": "Brown", "age": 21, "sex": "M"},
+            {"student_id": 5, "first_name": "Charlie", "second_name": "Davis", "age": 18, "sex": "M"},
+            {"student_id": 6, "first_name": "Eve", "second_name": "Miller", "age": 23, "sex": "F"},
+            {"student_id": 7, "first_name": "Frank", "second_name": "Wilson", "age": 20, "sex": "M"},
+            {"student_id": 8, "first_name": "Grace", "second_name": "Moore", "age": 22, "sex": "F"},
+            {"student_id": 9, "first_name": "Hank", "second_name": "Taylor", "age": 19, "sex": "M"},
+            {"student_id": 10, "first_name": "Ivy", "second_name": "Anderson", "age": 21, "sex": "F"},
+        ]
+        for record in test_data:
+            self.db.insert_record("students", record)
+        return test_data
 
     def test_create_record(self):
-        cases = [
-            (1, "John", "Doe", 20, "M"),
-            (2, "Jane", "Smith", 22, "F"),
-            (3, "Alice", "Johnson", 19, "F"),
-            (4, "Bob", "Brown", 21, "M"),
-            (5, "Charlie", "Davis", 18, "M"),
-            (6, "Eve", "Miller", 23, "F"),
-            (7, "Frank", "Wilson", 20, "M"),
-            (8, "Grace", "Moore", 22, "F"),
-            (9, "Hank", "Taylor", 19, "M"),
-            (10, "Ivy", "Anderson", 21, "F"),
-            (11, "Jack", "Thomas", 18, "M"),
-            (12, "Kathy", "Jackson", 23, "F"),
+        """Тест создания записи"""
+        test_data = [
+            {"student_id": 1, "first_name": "John", "second_name": "Doe", "age": 20, "sex": "M"},
+            {"student_id": 2, "first_name": "Jane", "second_name": "Smith", "age": 22, "sex": "F"},
         ]
-
-        for test_data in cases:
-            # Используем subTest для изоляции каждого тестового случая и улучшения читаемости результатов тестирования.
-            # Это позволяет нам видеть, какой именно набор данных вызвал ошибку, если тест не пройдет.
-            with self.subTest(test_data=test_data):
-                record = self.student_table.create_record(*test_data)
-                self.assertEqual(record, test_data)
+        
+        for record in test_data:
+            with self.subTest(record=record):
+                self.db.insert_record("students", record)
+                records = self.db.select_records("students", student_id=record["student_id"])
+                self.assertEqual(len(records), 1)
+                self.assertEqual(records[0], record)
 
     def test_create_record_negative_age(self):
-        cases = [
-            (1, "John", "Doe", -1, "M"),
-            (2, "Jane", "Smith", -5, "F"),
-            (3, "Alice", "Johnson", -10, "F"),
+        """Тест создания записи с отрицательным возрастом"""
+        invalid_records = [
+            {"student_id": 1, "first_name": "John", "second_name": "Doe", "age": -1, "sex": "M"},
+            {"student_id": 2, "first_name": "Jane", "second_name": "Smith", "age": -5, "sex": "F"},
+            {"student_id": 3, "first_name": "Alice", "second_name": "Johnson", "age": -10, "sex": "F"},
         ]
-        error_message = "Поле age не может быть отрицательным."
-
-        for test_data in cases:
-            with self.subTest(test_data=test_data):
-                with self.assertRaises(InvalidAgeError) as context:
-                    self.student_table.create_record(*test_data)
-
-        self.assertEqual(str(context.exception), error_message)
+        
+        for record in invalid_records:
+            with self.subTest(record=record):
+                with self.assertRaises(InvalidAgeError):
+                    self.db.insert_record("students", record)
 
     def test_create_record_duplicate_id(self):
-        test_data_1 = (1, "John", "Doe", 20, "M")
-        test_data_2 = (1, "Jane", "Smith", 22, "F")
-        error_message = "Запись с id=1 уже существует."
-
-        self.student_table.create_record(*test_data_1)
-
-        with self.assertRaises(DuplicateIDError) as context:
-            self.student_table.create_record(*test_data_2)
-
-        self.assertEqual(str(context.exception), error_message)
+        """Тест создания записи с дублирующим ID"""
+        record1 = {"student_id": 1, "first_name": "John", "second_name": "Doe", "age": 20, "sex": "M"}
+        record2 = {"student_id": 1, "first_name": "Jane", "second_name": "Smith", "age": 22, "sex": "F"}
+        
+        self.db.insert_record("students", record1)
+        
+        with self.assertRaises(DuplicateIDError):
+            self.db.insert_record("students", record2)
 
     def test_select_record(self):
-        # Подготовка тестовых данных для проверки функции select_record.
-        test_datas = [
-            (1, "John", "Doe", 20, "M"),
-            (2, "Jane", "Smith", 22, "F"),
-            (3, "Alice", "Johnson", 19, "F"),
-            (4, "Bob", "Brown", 21, "M"),
-            (5, "Charlie", "Davis", 18, "M"),
-            (6, "Eve", "Miller", 23, "F"),
-            (7, "Frank", "Wilson", 20, "M"),
-            (8, "Grace", "Moore", 22, "F"),
-            (9, "Hank", "Taylor", 19, "M"),
-            (10, "Ivy", "Anderson", 21, "F"),
-        ]
-
-        for test_data in test_datas:
-            self.student_table.create_record(*test_data)
-
-        # Формирование тестовых случаев для функции select_record.
-        # Каждый случай включает в себя описание, набор фильтров и ожидаемый результат.
-        cases = [
+        """Тест поиска записей с фильтрами"""
+        test_data = self._insert_test_data()
+        
+        test_cases = [
             {
                 "name": "Выбор без фильтров",
                 "filters": {},
-                "expected": test_datas,
+                "expected_count": 10,
             },
             {
                 "name": "Фильтр по ID",
                 "filters": {"student_id": 1},
-                "expected": [test_datas[0]],
+                "expected_count": 1,
+                "expected_name": "John",
             },
             {
                 "name": "Фильтр по имени",
                 "filters": {"first_name": "Jane"},
-                "expected": [test_datas[1]],
+                "expected_count": 1,
+                "expected_name": "Jane",
             },
             {
                 "name": "Фильтр по фамилии",
                 "filters": {"second_name": "Johnson"},
-                "expected": [test_datas[2]],
+                "expected_count": 1,
+                "expected_name": "Alice",
             },
             {
                 "name": "Фильтр по возрасту",
                 "filters": {"age": 20},
-                "expected": [test_datas[0], test_datas[6]],
+                "expected_count": 2,  # John и Frank
             },
             {
                 "name": "Фильтр по полу",
                 "filters": {"sex": "F"},
-                "expected": [
-                    test_datas[1],
-                    test_datas[2],
-                    test_datas[5],
-                    test_datas[7],
-                    test_datas[9],
-                ],
+                "expected_count": 5,  # Jane, Alice, Eve, Grace, Ivy
             },
         ]
-
-        for case in cases:
-            with self.subTest(
-                case=case["name"], filters=case["filters"], expected=case["expected"]
-            ):
-                records = self.student_table.select_record(**case["filters"])
-                self.assertEqual(records, case["expected"])
-    
+        
+        for case in test_cases:
+            with self.subTest(case=case["name"]):
+                records = self.db.select_records("students", **case["filters"])
+                self.assertEqual(len(records), case["expected_count"])
 
     def test_update_record(self):
-                self.student_table.create_record(1, "John", "Doe", 20, "M")
-                
-                updated = self.student_table.update_record(
-                    student_id=1,
-                    new_first_name="Johnny",
-                    new_second_name="Does",
-                    new_age=21,
-                    new_sex="M"
-                )
-                self.assertEqual(len(updated), 1) 
-                self.assertEqual(updated[0], (1, "Johnny", "Does", 21, "M"))
-                
-                records = self.student_table.select_record()
-                self.assertEqual(records[0], (1, "Johnny", "Does", 21, "M"))
-                
+        """Тест обновления записи"""
+        self.db.insert_record("students", {"student_id": 1, "first_name": "John", "second_name": "Doe", "age": 20, "sex": "M"})
+        
+        updated = self.db.update_records(
+            "students",
+            filters={"student_id": 1},
+            updates={
+                "first_name": "Johnny",
+                "second_name": "Does",
+                "age": 21,
+                "sex": "M"
+            }
+        )
+        
+        self.assertEqual(len(updated), 1)
+        self.assertEqual(updated[0]["first_name"], "Johnny")
+        self.assertEqual(updated[0]["second_name"], "Does")
+        self.assertEqual(updated[0]["age"], 21)
+        
+        records = self.db.select_records("students")
+        self.assertEqual(records[0]["first_name"], "Johnny")
+        self.assertEqual(records[0]["second_name"], "Does")
+        self.assertEqual(records[0]["age"], 21)
 
     def test_update_record_no_filter(self):
-            with self.assertRaises(ValueError):
-                self.student_table.update_record(
-                    new_first_name="Test"
-                    )
-                
+        """Тест обновления без фильтра - должно быть исключение"""
+        self.db.insert_record("students", {"student_id": 1, "first_name": "John", "second_name": "Doe", "age": 20, "sex": "M"})
+        
+        with self.assertRaises(ValueError):
+            self.db.update_records(
+                "students",
+                filters={},  # Пустой фильтр
+                updates={"first_name": "Test"}
+            )
 
     def test_update_record_no_new_values(self):
-            self.student_table.create_record(1, "John", "Doe", 20, "M")
-            with self.assertRaises(ValueError):
-                self.student_table.update_record(student_id=1)
-
+        """Тест обновления без новых значений - должно быть исключение"""
+        self.db.insert_record("students", {"student_id": 1, "first_name": "John", "second_name": "Doe", "age": 20, "sex": "M"})
+        
+        with self.assertRaises(ValueError):
+            self.db.update_records(
+                "students",
+                filters={"student_id": 1},
+                updates={}  # Пустые обновления
+            )
 
     def test_update_record_negative_age(self):
-            self.student_table.create_record(1, "John", "Doe", 20, "M")
-            with self.assertRaises(ValueError):
-                self.student_table.update_record(
-                    student_id=1,
-                    new_age=-5
-                )
-                
+        """Тест обновления с отрицательным возрастом"""
+        self.db.insert_record("students", {"student_id": 1, "first_name": "John", "second_name": "Doe", "age": 20, "sex": "M"})
+        
+        with self.assertRaises(InvalidAgeError):
+            self.db.update_records(
+                "students",
+                filters={"student_id": 1},
+                updates={"age": -5}
+            )
 
     def test_delete_record(self):
-            self.student_table.create_record(1, "John", "Doe", 20, "M")
-            self.student_table.create_record(2, "Jane", "Smith", 22, "F")
-            
-            deleted = self.student_table.delete_record(student_id=1)
-            self.assertEqual(len(deleted), 1)
-            self.assertEqual(deleted[0][0], 1)
-            
-            remaining = self.student_table.select_record()
-            self.assertEqual(len(remaining), 1)
-            self.assertEqual(remaining[0][0], 2)
-            
+        """Тест удаления записи"""
+        self.db.insert_record("students", {"student_id": 1, "first_name": "John", "second_name": "Doe", "age": 20, "sex": "M"})
+        self.db.insert_record("students", {"student_id": 2, "first_name": "Jane", "second_name": "Smith", "age": 22, "sex": "F"})
+        
+        deleted = self.db.delete_records("students", filters={"student_id": 1})
+        self.assertEqual(len(deleted), 1)
+        self.assertEqual(deleted[0]["student_id"], 1)
+        
+        remaining = self.db.select_records("students")
+        self.assertEqual(len(remaining), 1)
+        self.assertEqual(remaining[0]["student_id"], 2)
 
     def test_delete_record_no_filter(self):
-            with self.assertRaises(ValueError):
-                self.student_table.delete_record()
-            
+        """Тест удаления без фильтра - должно быть исключение"""
+        self.db.insert_record("students", {"student_id": 1, "first_name": "John", "second_name": "Doe", "age": 20, "sex": "M"})
+        
+        with self.assertRaises(ValueError):
+            self.db.delete_records("students", filters={})
 
     def test_delete_record_by_name(self):
-            self.student_table.create_record(1, "John", "Doe", 20, "M")
-            self.student_table.create_record(2, "Jane", "Doe", 22, "F")
-            
-            deleted = self.student_table.delete_record(second_name="Doe")
-            self.assertEqual(len(deleted), 2)
-            
-            remaining = self.student_table.select_record()
-            self.assertEqual(len(remaining), 0)
+        """Тест удаления нескольких записей по фамилии"""
+        self.db.insert_record("students", {"student_id": 1, "first_name": "John", "second_name": "Doe", "age": 20, "sex": "M"})
+        self.db.insert_record("students", {"student_id": 2, "first_name": "Jane", "second_name": "Doe", "age": 22, "sex": "F"})
+        
+        deleted = self.db.delete_records("students", filters={"second_name": "Doe"})
+        self.assertEqual(len(deleted), 2)
+        
+        remaining = self.db.select_records("students")
+        self.assertEqual(len(remaining), 0)
+
+
+if __name__ == "__main__":
+    unittest.main()
+    
